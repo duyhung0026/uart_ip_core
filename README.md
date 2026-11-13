@@ -1,7 +1,9 @@
 # UART IP Core (Verilog)
 
 > **Project Status: Still ongoing.**
+
 `This design is provided for educational and reference purposes only. It may contain design errors, functional limitations, or deviations from the intended specifications, and has not been fully verified`
+
 This project implements a UART IP Core using Verilog, following the
 **Lattice UART IP User Guide** (FPGA-IPUG-02105, v1.5, IP v1.4.0) as a
 design reference.
