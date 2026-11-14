@@ -4,7 +4,7 @@
 
 `This design is provided for educational and reference purposes only. It may contain design errors, functional limitations, or deviations from the intended specifications, and has not been fully verified.`
 
-`Warns: I used AI models to write testplan and testcases for verification testbenchs`
+`Warns: I used AI models to write Verilog testbenchs, testplan and testcases for verification `
 
 This project implements a UART IP Core using Verilog, following the
 **Lattice UART IP User Guide** (FPGA-IPUG-02105, v1.5, IP v1.4.0) as a
