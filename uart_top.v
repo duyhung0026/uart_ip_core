@@ -51,7 +51,7 @@ A_DLR_LSB = 6'h20,
 A_DLR_MSB = 6'h24;
 
 
-// ---------------- APB front-end (no wait state) -> simple register bus ----------------
+//APB no wait state
 wire        reg_wr, reg_rd;
 wire [5:0]  reg_addr;
 wire [31:0] reg_wdata;
@@ -63,39 +63,39 @@ apb_slave #(.ADDR_W(6), .DATA_W(32)) u_apb (
 .reg_wr_o(reg_wr), .reg_rd_o(reg_rd), .reg_addr_o(reg_addr), .reg_wdata_o(reg_wdata),
 .reg_rdata_i(reg_rdata));
 
-// ---------------- config registers ----------------
-reg [6:0] lcr;                               // LCR[6:0]
+//config register
+reg [6:0] lcr; // LCR[6:0]
 reg [7:0] dlr_lsb, dlr_msb;
-reg [2:0] ier;                               // {rls_int_en, thre_int_en, rda_int_en}
+reg [2:0] ier; // {rls_int_en, thre_int_en, rda_int_en}
 always @(posedge clk_i or negedge rst_n_i) begin
-    if (!rst_n_i) begin
-        ier     <= IER_RESET;
-        lcr     <= 7'b001_0011;              // 8 bit, 1 stop, no parity, even_parity_sel=1
-        dlr_lsb <= DLR_RESET[7:0];
-        dlr_msb <= DLR_RESET[15:8];
-    end else if (reg_wr) begin
-        case (reg_addr)
-            A_IER:     ier     <= reg_wdata[2:0];
-            A_LCR:     lcr     <= reg_wdata[6:0];
-            A_DLR_LSB: dlr_lsb <= reg_wdata[7:0];
-            A_DLR_MSB: dlr_msb <= reg_wdata[7:0];
-            default: ;
-        endcase
-    end
+if (!rst_n_i) begin
+ier <= IER_RESET;
+lcr  <= 7'b001_0011; // 8 bit, 1 stop, no parity, even_parity_sel=1
+dlr_lsb <= DLR_RESET[7:0];
+dlr_msb <= DLR_RESET[15:8];
+end else if (reg_wr) begin
+case (reg_addr)
+A_IER: ier <= reg_wdata[2:0];
+A_LCR: lcr <= reg_wdata[6:0];
+A_DLR_LSB: dlr_lsb <= reg_wdata[7:0];
+A_DLR_MSB: dlr_msb <= reg_wdata[7:0];
+default: ;
+endcase
 end
-wire break_ctrl_en   = lcr[6];
+end
+wire break_ctrl_en = lcr[6];
 wire stick_parity_en = lcr[5];
 wire even_parity_sel = lcr[4];
-wire parity_en       = lcr[3];
-wire stop_bit_ctrl   = lcr[2];
-wire [1:0] char_len_sel    = lcr[1:0];
+wire parity_en = lcr[3];
+wire stop_bit_ctrl = lcr[2];
+wire [1:0] char_len_sel = lcr[1:0];
 
-// ---------------- strobes ----------------
+//strobes
 wire thr_wr = reg_wr && (reg_addr == A_RBR_THR);
 wire rbr_rd = reg_rd && (reg_addr == A_RBR_THR);
 wire lsr_rd = reg_rd && (reg_addr == A_LSR);
 
-// ---------------- datapath ----------------
+//eatapath
 wire baud_tick;
 baud_gen u_baud_gen (.clk_i(clk_i), .rst_n_i(rst_n_i),
 .dlr_lsb_i(dlr_lsb), .dlr_msb_i(dlr_msb), .baud_tick_o(baud_tick));
@@ -121,7 +121,7 @@ rx_top u_rx_top (.clk_i(clk_i), .rst_n_i(rst_n_i), .baud_tick_i(baud_tick), .rxd
 // LSR[7]=0, [6]=xmitr_empty, [5]=thr_empty, [4]=break, [3]=framing, [2]=parity, [1]=overrun, [0]=data_rdy
 wire [7:0] lsr = {1'b0, xmitr_empty, thr_empty, break_cond, framing_err, parity_err, overrun_err, data_rdy};
 
-// ---------------- interrupts (level-based, masked by IER) ----------------
+//interrupts (level-based, masked by IER)
 // RLS : any LSR error flag -> cleared by reading LSR (flags are sticky until lsr_rd)
 // RDA : data_rdy -> cleared by reading RBR (non-FIFO: trigger level = 1 char)
 // THRE: thr_empty -> cleared by writing THR
@@ -133,18 +133,18 @@ wire [1:0] int_prio = int_rls ? 2'b11 : int_rda ? 2'b10 : int_thre ? 2'b01 : 2'b
 assign int_o = int_pend;
 // IIR[7:6]=fifos_en=00 (no FIFO), [2:1]=int_prio, [0]=int_pending (0 = pending)
 wire [7:0] iir = {2'b00, 3'b000, int_prio, ~int_pend};
-// ---------------- read mux (combinational: pready is always 1) ----------------
+//read mux (combinational: pready is always 1)
 always @(*) begin
-reg_rdata = 32'd0;                       // WO / reserved read as 0
+reg_rdata = 32'd0;// WO / reserved read as 0
 case (reg_addr)
 A_RBR_THR: reg_rdata = {24'd0, rbr_data};
-A_IER:     reg_rdata = {29'd0, ier};
-A_IIR:     reg_rdata = {24'd0, iir};
-A_LCR:     reg_rdata = {25'd0, lcr};
-A_LSR:     reg_rdata = {24'd0, lsr};
+A_IER: reg_rdata = {29'd0, ier};
+A_IIR: reg_rdata = {24'd0, iir};
+A_LCR: reg_rdata = {25'd0, lcr};
+A_LSR: reg_rdata = {24'd0, lsr};
 A_DLR_LSB: reg_rdata = {24'd0, dlr_lsb};
 A_DLR_MSB: reg_rdata = {24'd0, dlr_msb};
-default:   reg_rdata = 32'd0;
+default: reg_rdata = 32'd0;
 endcase
 end
 endmodule
